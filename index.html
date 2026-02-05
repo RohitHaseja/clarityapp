@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>7-Minute Clarity</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 6px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+    }
+    .progress {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="progress" id="progress"></div>
+    <h3 id="question"></h3>
+    <textarea id="answer"></textarea>
+    <button onclick="next()">Next</button>
+    <pre id="result" style="display:none;"></pre>
+  </div>
+
+  <script>
+    const questions = [
+      "In 1–2 sentences, what decision are you stuck on?",
+      "What makes this decision difficult right now?",
+      "If you do nothing for the next 6 months, what likely happens?",
+      "What is the realistic worst-case outcome if you choose wrong?",
+      "What part of this situation is 100% under your control?",
+      "What is the smallest action you could take that moves this forward?",
+      "When will you take that step?"
+    ];
+
+    let index = 0;
+    let answers = [];
+
+    function next() {
+      const input = document.getElementById("answer");
+      if (!input.value.trim()) return;
+
+      answers.push(input.value.trim());
+      input.value = "";
+      index++;
+
+      if (index < questions.length) {
+        render();
+      } else {
+        showSummary();
+      }
+    }
+
+    function render() {
+      document.getElementById("progress").innerText =
+        `Question ${index + 1} of ${questions.length}`;
+      document.getElementById("question").innerText = questions[index];
+    }
+
+    async function showSummary() {
+  document.getElementById("question").style.display = "none";
+  document.getElementById("answer").style.display = "none";
+  document.querySelector("button").style.display = "none";
+  document.getElementById("progress").innerText = "Generating clarity...";
+
+  const resultBox = document.getElementById("result");
+  resultBox.style.display = "block";
+  resultBox.innerText = "Thinking...";
+
+  try {
+    const response = await fetch("/.netlify/functions/summarize", {
+      method: "POST",
+      body: JSON.stringify({ answers })
+    });
+
+    const text = await response.text();
+    resultBox.innerText = text;
+  } catch (e) {
+    resultBox.innerText = "Error generating clarity. Please try again.";
+  }
+}
+
+    render();
+  </script>
+</body>
+</html>
