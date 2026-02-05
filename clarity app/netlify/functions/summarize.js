@@ -1,3 +1,5 @@
+const https = require("https");
+
 exports.handler = async function (event) {
   try {
     const { answers } = JSON.parse(event.body);
@@ -25,27 +27,42 @@ Answers:
 ${answers.map((a, i) => `Q${i + 1}: ${a}`).join("\n")}
 `;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const data = JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3
+    });
+
+    const options = {
+      hostname: "api.openai.com",
+      path: "/v1/chat/completions",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3
-      })
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Length": data.length
+      }
+    };
+
+    const responseBody = await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => resolve(body));
+      });
+      req.on("error", reject);
+      req.write(data);
+      req.end();
     });
 
-    const data = await response.json();
+    const result = JSON.parse(responseBody);
 
     return {
       statusCode: 200,
-      body: data.choices[0].message.content
+      body: result.choices[0].message.content
     };
 
-  } catch (error) {
+  } catch (err) {
     return {
       statusCode: 500,
       body: "Error generating clarity"
